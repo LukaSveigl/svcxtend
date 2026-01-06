@@ -381,20 +381,20 @@ SVCXDEF svcx_result svcx_vector_from_array(
 SVCXDEF void svcx_vector_free(svcx_vector *v);
 SVCXDEF size_t svcx_vector_size(svcx_vector *v);
 
-#define SVCX_VECTOR_PUSH(v, T, value)                                          \
-  do {                                                                         \
-      T tmp = (value);							       \
-      svcx_vector_push((v), &tmp);					       \
-  } while (0)
+#define SVCX_VECTOR_PUSH(v, T, value)					\
+    do {								\
+        T tmp = (value);						\
+        svcx_vector_push((v), &tmp);					\
+    } while (0)
 
-#define foreach_v(iter, v)                                                     \
-    for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);	       \
-         _keep = !_keep, _i++)						       \
+#define foreach_v(iter, v)						\
+    for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);	\
+         _keep = !_keep, _i++)						\
         for (iter = svcx_vector_at(&v, _i); _keep; _keep = !_keep)
 
-#define foreach_a(iter, a)                                                     \
-    for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);	       \
-         _keep = !_keep, _i++)						       \
+#define foreach_a(iter, a)						\
+    for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);	\
+         _keep = !_keep, _i++)						\
         for (iter = (a) + _i; _keep; _keep = !_keep)                               
 
 
