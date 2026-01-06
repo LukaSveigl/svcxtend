@@ -387,6 +387,7 @@ SVCXDEF size_t svcx_vector_size(svcx_vector *v);
         svcx_vector_push((v), &tmp);					\
     } while (0)
 
+// Taken from: https://stackoverflow.com/a/400970
 #define foreach_v(iter, v)						\
     for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);	\
          _keep = !_keep, _i++)						\
