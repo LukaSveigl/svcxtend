@@ -379,12 +379,23 @@ SVCXDEF svcx_result svcx_vector_from_array(
     svcx_allocator a
 );
 SVCXDEF void svcx_vector_free(svcx_vector *v);
+SVCXDEF size_t svcx_vector_size(svcx_vector *v);
 
 #define SVCX_VECTOR_PUSH(v, T, value)                                          \
   do {                                                                         \
     T tmp = (value);                                                           \
     svcx_vector_push((v), &tmp);                                               \
   } while (0)
+
+#define foreach_v(iter, v)                                                     \
+    for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);	       \
+	 _keep = !_keep, _i++)						       \
+	for (iter = svcx_vector_at(&v, _i); _keep; _keep = !_keep)
+
+#define foreach_a(iter, a)                                                     \
+    for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);	       \
+	 _keep = !_keep, _i++)						       \
+	for (iter = (a) + _i; _keep; _keep = !_keep)                               
 
 
 
@@ -400,17 +411,17 @@ SVCXDEF const char *svcx_error_string(svcx_result r) {
       return "no rerror";
     case SVCX_VEC_GROW_MEM_ERR:
       return "vector grow could not allocate memory";
-    case SVCX_PUSH_GROW_ERR:
+    case SVCX_VEC_PUSH_GROW_ERR:
       return "vector push could not grow vector";
-    case SVCX_POP_EMPTY_ERR:
+    case SVCX_VEC_POP_EMPTY_ERR:
       return "vector is empty on pop";
-    case SVCX_INSERT_OOB:
+    case SVCX_VEC_INSERT_OOB:
       return "index out of bounds on vector insert";
-    case SVCX_INSERT_GROW_ERR:
+    case SVCX_VEC_INSERT_GROW_ERR:
       return "vector insert could not grow memory";
-    case SVCX_APPEND_STRIDE_ERR:
+    case SVCX_VEC_APPEND_STRIDE_ERR:
       return "vectors differ in stride values on append";
-    case SVCX_APPEND_GROW_ERR:
+    case SVCX_VEC_APPEND_GROW_ERR:
       return "vector append could not grow vector";
     case SVCX_VEC_FROM_ARR_MALLOC_ERR:
       return "vector from array could not malloc memory";      
@@ -418,6 +429,7 @@ SVCXDEF const char *svcx_error_string(svcx_result r) {
       return "unknown error";      
     }  
 }
+
 
 
 
@@ -456,7 +468,7 @@ SVCXDEF void *svcx_realloc(svcx_allocator *a, void *ptr, size_t size) {
 }
 
 SVCXDEF void svcx_free(svcx_allocator *a, void *ptr) {
-    return a->free(a->ctx, ptr);
+    a->free(a->ctx, ptr);
 }
 
 SVCXDEF bool svcx_allocator_is_valid(const svcx_allocator *a) {
@@ -580,7 +592,7 @@ SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem) {
         int err = _svcx_vector_grow(v, v->size + 1);
 	if (err != 0) {
 	    return SVCX_VEC_PUSH_GROW_ERR;
-	}
+	}        
     }
 
     void *dst = (char *)v->data + v->size * v->stride;
@@ -676,7 +688,7 @@ SVCXDEF svcx_result svcx_vector_from_array(
 	return 0;
     }
 
-    v->data = svcx_malloc(&v->a, count * stride);
+    v->data = (void *)svcx_alloc(&v->a, count * stride);
     if (!v->data) {
 	return SVCX_VEC_FROM_ARR_MALLOC_ERR;
     }
@@ -697,6 +709,11 @@ SVCXDEF void svcx_vector_free(svcx_vector *v) {
     v->data = NULL;
     v->size = 0;
     v->cap = 0;
+}
+
+SVCXDEF size_t svcx_vector_size(svcx_vector *v) {
+    SVCX_ASSERT(v);
+    return v->size;
 }
 
 
