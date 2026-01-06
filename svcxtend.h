@@ -383,19 +383,19 @@ SVCXDEF size_t svcx_vector_size(svcx_vector *v);
 
 #define SVCX_VECTOR_PUSH(v, T, value)                                          \
   do {                                                                         \
-    T tmp = (value);                                                           \
-    svcx_vector_push((v), &tmp);                                               \
+      T tmp = (value);							       \
+      svcx_vector_push((v), &tmp);					       \
   } while (0)
 
 #define foreach_v(iter, v)                                                     \
     for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);	       \
-	 _keep = !_keep, _i++)						       \
-	for (iter = svcx_vector_at(&v, _i); _keep; _keep = !_keep)
+         _keep = !_keep, _i++)						       \
+        for (iter = svcx_vector_at(&v, _i); _keep; _keep = !_keep)
 
 #define foreach_a(iter, a)                                                     \
     for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);	       \
-	 _keep = !_keep, _i++)						       \
-	for (iter = (a) + _i; _keep; _keep = !_keep)                               
+         _keep = !_keep, _i++)						       \
+        for (iter = (a) + _i; _keep; _keep = !_keep)                               
 
 
 
@@ -478,7 +478,7 @@ SVCXDEF bool svcx_allocator_is_valid(const svcx_allocator *a) {
 SVCXDEF void *svcx_alloc_zero(svcx_allocator *a, size_t size) {
     void *p = svcx_alloc(a, size);
     if (p) {
-	memset(p, 0, size);      
+        memset(p, 0, size);      
     }   
     return p;
 }
@@ -488,10 +488,10 @@ SVCXDEF void *svcx_alloc_zero(svcx_allocator *a, size_t size) {
 
 SVCXDEF svcx_allocator svcx_arena_allocator(svcx_arena *arena) {
     svcx_allocator a = {
-	.alloc = svcx_arena_alloc,
-	.realloc = svcx_arena_realloc,
-	.free = svcx_arena_free,
-	.ctx = arena
+        .alloc = svcx_arena_alloc,
+        .realloc = svcx_arena_realloc,
+        .free = svcx_arena_free,
+        .ctx = arena
     };
     return a;
 }
@@ -508,7 +508,7 @@ SVCXDEF void *svcx_arena_alloc(void *ctx, size_t size) {
     size = (size + 7) & ~7; // Align to 8 bytes
 
     if (arena->used + size > arena->size) {
-	return NULL;
+        return NULL;
     }
 
     void *ptr = arena->base + arena->used;
@@ -544,7 +544,7 @@ SVCXDEF void svcx_arena_free_all(svcx_arena *arena) {
 SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap) {
     size_t new_cap = v->cap ? v->cap * 2 : 8;
     if (new_cap < min_cap) {
-	new_cap = min_cap;
+        new_cap = min_cap;
     }
 
     // We cannot use svcx_realloc here in case the user uses an allocator
@@ -555,16 +555,16 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap) {
     void *new_data;
     if (v->data) {
         new_data = svcx_alloc(&v->a, new_size);
-	if (!new_data) {
-	    return SVCX_VEC_GROW_MEM_ERR;
+        if (!new_data) {
+            return SVCX_VEC_GROW_MEM_ERR;
         }
 
-	memcpy(new_data, v->data, v->size * v->stride);
+        memcpy(new_data, v->data, v->size * v->stride);
     } else {
         new_data = svcx_alloc(&v->a, new_size);
-	if (!new_data) {
-	    return SVCX_VEC_GROW_MEM_ERR;
-	}
+        if (!new_data) {
+            return SVCX_VEC_GROW_MEM_ERR;
+        }
     }
     
     v->data = new_data;
@@ -590,9 +590,9 @@ SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem) {
     
     if (v->size == v->cap) {
         int err = _svcx_vector_grow(v, v->size + 1);
-	if (err != 0) {
-	    return SVCX_VEC_PUSH_GROW_ERR;
-	}        
+        if (err != 0) {
+            return SVCX_VEC_PUSH_GROW_ERR;
+        }        
     }
 
     void *dst = (char *)v->data + v->size * v->stride;
@@ -605,14 +605,14 @@ SVCXDEF svcx_result svcx_vector_pop(svcx_vector *v, void *out_elem) {
     SVCX_ASSERT(v);
     
     if (v->size == 0) {
-	return SVCX_VEC_POP_EMPTY_ERR;
+        return SVCX_VEC_POP_EMPTY_ERR;
     }
 
     v->size--;
 
     if (out_elem) {
         void *src = (char *)v->data + v->size * v->stride;
-	memcpy(out_elem, src, v->stride);
+        memcpy(out_elem, src, v->stride);
     }
 
     return SVCX_OK;
@@ -622,7 +622,7 @@ SVCXDEF void *svcx_vector_at(svcx_vector *v, size_t index) {
     SVCX_ASSERT(v);
 
     if (index >= v->size) {
-	return NULL;
+        return NULL;
     }
 
     return (char *)v->data + index * v->stride;
@@ -631,13 +631,13 @@ SVCXDEF void *svcx_vector_at(svcx_vector *v, size_t index) {
 SVCXDEF svcx_result svcx_vector_insert(svcx_vector *v, size_t index, const void *elem) {
     SVCX_ASSERT(v);
     if (index > v->size) {
-	return SVCX_VEC_INSERT_OOB;
+        return SVCX_VEC_INSERT_OOB;
     }
 
     if (v->size == v->cap) {
         int err = _svcx_vector_grow(v, v->size + 1);
-	if (err != 0) {
-	    return SVCX_VEC_INSERT_GROW_ERR;
+        if (err != 0) {
+            return SVCX_VEC_INSERT_GROW_ERR;
         }
     }
 
@@ -654,15 +654,15 @@ SVCXDEF svcx_result svcx_vector_append(svcx_vector *dst, const svcx_vector *src)
     SVCX_ASSERT(src);
 
     if (dst->stride != src->stride) {
-	return SVCX_VEC_APPEND_STRIDE_ERR;
+        return SVCX_VEC_APPEND_STRIDE_ERR;
     }
 
     size_t new_size = dst->size + src->size;
 
     if (new_size > dst->cap) {
         int err = _svcx_vector_grow(dst, new_size);
-	if (err != 0) {
-	    return SVCX_VEC_APPEND_GROW_ERR;
+        if (err != 0) {
+            return SVCX_VEC_APPEND_GROW_ERR;
         }
     }
 
@@ -685,12 +685,12 @@ SVCXDEF svcx_result svcx_vector_from_array(
     svcx_vector_init(v, stride, a);
 
     if (count == 0) {
-	return 0;
+        return 0;
     }
 
     v->data = (void *)svcx_alloc(&v->a, count * stride);
     if (!v->data) {
-	return SVCX_VEC_FROM_ARR_MALLOC_ERR;
+        return SVCX_VEC_FROM_ARR_MALLOC_ERR;
     }
 
     memcpy(v->data, array, count * stride);
@@ -703,7 +703,7 @@ SVCXDEF void svcx_vector_free(svcx_vector *v) {
     SVCX_ASSERT(v);
     
     if (v->data) {
-	svcx_free(&v->a, v->data);
+        svcx_free(&v->a, v->data);
     }
 
     v->data = NULL;
