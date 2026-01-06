@@ -51,6 +51,7 @@
 #define SVCXDEF
 #endif // SVCXDEF
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -107,13 +108,20 @@
 typedef enum svcx_result {
     SVCX_OK = 0,
     SVCX_VEC_GROW_MEM_ERR,
+    SVCX_VEC_ERR_OOM,
     SVCX_VEC_PUSH_GROW_ERR,
     SVCX_VEC_POP_EMPTY_ERR,
     SVCX_VEC_INSERT_OOB,
     SVCX_VEC_INSERT_GROW_ERR,
     SVCX_VEC_APPEND_STRIDE_ERR,
     SVCX_VEC_APPEND_GROW_ERR,
-    SVCX_VEC_FROM_ARR_MALLOC_ERR
+    SVCX_VEC_FROM_ARR_MALLOC_ERR,
+    SVCX_SV_SPLIT_ERR,
+    SVCX_SB_PUSHC_ERR,
+    SVCX_SB_APPEND_ERR,
+    SVCX_SB_APPEND_SV_ERR,
+    SVCX_SB_FMT_INVALID_ARG_ERR,
+    SVCX_SB_FMT_RESERVE_ERR
 } svcx_result;
 
 SVCXDEF const char *svcx_error_string(svcx_result);
@@ -366,6 +374,7 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
  */
 SVCXDEF void svcx_vector_init(svcx_vector *v, size_t stride, svcx_allocator a);
 SVCXDEF void svcx_vector_clear(svcx_vector *v);
+SVCXDEF svcx_result svcx_vector_reserve(svcx_vector *v, size_t min_cap);
 SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem);
 SVCXDEF svcx_result svcx_vector_pop(svcx_vector *v, void *out_elem);
 SVCXDEF void *svcx_vector_at(svcx_vector *v, size_t index);
@@ -396,7 +405,69 @@ SVCXDEF size_t svcx_vector_size(svcx_vector *v);
 #define foreach_a(iter, a)						\
     for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);	\
          _keep = !_keep, _i++)						\
-        for (iter = (a) + _i; _keep; _keep = !_keep)                               
+        for (iter = (a) + _i; _keep; _keep = !_keep)
+
+
+
+
+typedef struct svcx_string_view {
+    const char *data;
+    size_t len;
+} svcx_string_view;
+
+SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size);
+SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data);
+SVCXDEF bool svcx_sv_contains(
+    svcx_string_view haystack,
+    svcx_string_view needle
+);
+SVCXDEF bool svcx_sv_starts_with(svcx_string_view sv, svcx_string_view prefix);
+SVCXDEF bool svcx_sv_ends_with(svcx_string_view sv, svcx_string_view suffix);
+SVCXDEF svcx_string_view svcx_sv_trim_start(svcx_string_view sv);
+SVCXDEF svcx_string_view svcx_sv_trim_end(svcx_string_view sv);
+SVCXDEF svcx_string_view svcx_sv_trim(svcx_string_view sv);
+SVCXDEF svcx_result svcx_sv_split(
+    svcx_string_view sv,
+    char delimiter,
+    svcx_vector *out
+);
+
+#define SVCX_SV(lit) ((svcx_string_view){ (lit), sizeof(lit) - 1 })
+
+
+
+typedef struct svcx_string_builder {
+    svcx_vector buf;
+} svcx_string_builder;
+
+SVCXDEF void svcx_sb_init(svcx_string_builder *sb, svcx_allocator a);
+SVCXDEF void svcx_sb_clear(svcx_string_builder *sb);
+SVCXDEF void svcx_sb_free(svcx_string_builder *sb);
+SVCXDEF svcx_result svcx_sb_push_char(svcx_string_builder *sb, char c);
+SVCXDEF svcx_result svcx_sb_append(
+    svcx_string_builder *sb,                                   
+    const char *str,
+    size_t len
+);
+SVCXDEF svcx_result svcx_sb_append_cstr(
+    svcx_string_builder *sb,
+    const char *cstr
+);
+SVCXDEF svcx_result svcx_sb_append_sv(
+    svcx_string_builder *sb,
+    svcx_string_view sv
+);
+SVCXDEF svcx_result svcx_sb_append_fmt(
+    svcx_string_builder *sb,
+    const char *fmt,
+    ...
+);
+SVCXDEF const char *svcx_sb_cstr(svcx_string_builder *sb);
+SVCXDEF char *svcx_sb_build(svcx_string_builder *sb);
+SVCXDEF svcx_string_view svcx_sb_view(svcx_string_builder *sb);
+
+#define SVCX_SB_APPEND_LIT(sb, lit) \
+    svcx_sb_append_sv((sb), SVCX_SV(lit))
 
 
 
@@ -412,6 +483,8 @@ SVCXDEF const char *svcx_error_string(svcx_result r) {
       return "no rerror";
     case SVCX_VEC_GROW_MEM_ERR:
       return "vector grow could not allocate memory";
+    case SVCX_VEC_ERR_OOM:
+	return "vector reserve out of memory";
     case SVCX_VEC_PUSH_GROW_ERR:
       return "vector push could not grow vector";
     case SVCX_VEC_POP_EMPTY_ERR:
@@ -425,7 +498,19 @@ SVCXDEF const char *svcx_error_string(svcx_result r) {
     case SVCX_VEC_APPEND_GROW_ERR:
       return "vector append could not grow vector";
     case SVCX_VEC_FROM_ARR_MALLOC_ERR:
-      return "vector from array could not malloc memory";      
+      return "vector from array could not malloc memory";
+    case SVCX_SV_SPLIT_ERR:
+      return "string view split could not push to output vector";
+    case SVCX_SB_PUSHC_ERR:
+      return "string builder could not push char to internal vector";
+    case SVCX_SB_APPEND_ERR:
+      return "string builder could not reserve memory for append";
+    case SVCX_SB_APPEND_SV_ERR:
+      return "string builder could not reserve memory for string view append";
+    case SVCX_SB_FMT_INVALID_ARG_ERR:
+      return "string builder invalid arguments provided to format";
+    case SVCX_SB_FMT_RESERVE_ERR:
+      return "string builder could not reserve memory for format";
     default:
       return "unknown error";      
     }  
@@ -586,6 +671,37 @@ SVCXDEF void svcx_vector_clear(svcx_vector *v) {
     v->size = 0;
 }
 
+SVCXDEF svcx_result svcx_vector_reserve(svcx_vector *v, size_t min_cap) {
+    if (min_cap <= v->cap) {
+	return SVCX_OK;
+    }
+
+    size_t new_cap = v->cap ? v->cap : 8;
+
+    while (new_cap < min_cap) {
+	new_cap *= 2;
+    }
+
+    size_t new_size_bytes = new_cap * v->stride;
+
+    void *new_data = svcx_alloc(&v->a, new_size_bytes);
+    if (!new_data) {
+	return SVCX_VEC_ERR_OOM;
+    }
+
+    if (v->data && v->size > 0) {
+	memcpy(new_data, v->data, v->size * v->stride);
+    }
+
+    if (v->data) {
+	svcx_free(&v->a, v->data);
+    }
+
+    v->data = new_data;
+    v->cap = new_cap;
+    return SVCX_OK;
+}
+
 SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem) {
     SVCX_ASSERT(v);
     
@@ -716,6 +832,262 @@ SVCXDEF size_t svcx_vector_size(svcx_vector *v) {
     SVCX_ASSERT(v);
     return v->size;
 }
+
+
+
+
+SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size) {
+    svcx_string_view sv;
+    sv.data = data;
+    sv.len = size;
+    return sv;
+}
+
+SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data) {
+    return (svcx_string_view) { data, strlen(data) };
+}
+
+SVCXDEF bool svcx_sv_contains(
+    svcx_string_view haystack,
+    svcx_string_view needle
+) {
+    if (needle.len == 0) {
+        return true;
+    }
+    if (needle.len > haystack.len) {
+	return false;
+    }
+
+    for (size_t i = 0; i <= haystack.len - needle.len; i++) {
+        if (memcmp(haystack.data + i, needle.data, needle.len) == 0) {
+	    return true;
+	}
+    }
+    return false;
+}
+
+
+SVCXDEF bool svcx_sv_starts_with(svcx_string_view sv, svcx_string_view prefix) {
+    if (prefix.len > sv.len) {
+	return false;
+    }
+    return memcmp(sv.data, prefix.data, prefix.len) == 0;
+}
+
+SVCXDEF bool svcx_sv_ends_with(svcx_string_view sv, svcx_string_view suffix) {
+    if (suffix.len > sv.len) {
+	return false;
+    }
+    
+    const char *start = sv.data + (sv.len - suffix.len);
+    return memcmp(start, suffix.data, suffix.len) == 0;
+}
+
+SVCXDEF svcx_string_view svcx_sv_trim_start(svcx_string_view sv) {
+    size_t start = 0;
+    size_t end = sv.len;
+
+    while (start < end && isspace((unsigned char) sv.data[start])) {
+	start++;
+    }
+    
+    return (svcx_string_view) {
+        .data = sv.data + start,
+	.len = end - start
+    };
+}
+
+SVCXDEF svcx_string_view svcx_sv_trim_end(svcx_string_view sv) {
+    size_t start = 0;
+    size_t end = sv.len;
+
+    while (end > start && isspace((unsigned char)sv.data[end - 1])) {
+	end--;
+    }
+
+    return (svcx_string_view) {
+        .data = sv.data,
+	.len = end,
+    };
+}
+
+SVCXDEF svcx_string_view svcx_sv_trim(svcx_string_view sv) {
+    svcx_string_view tmp = svcx_sv_trim_start(sv);
+    return svcx_sv_trim_end(tmp);
+}
+
+SVCXDEF svcx_result svcx_sv_split(
+    svcx_string_view sv,
+    char delimiter,
+    svcx_vector *out
+) {
+    size_t start = 0;
+
+    for (size_t i = 0; i <= sv.len; i++) {
+        if (i == sv.len || sv.data[i] == delimiter) {
+            svcx_string_view part = {
+		.data = sv.data + start,
+		.len = i - start,
+	    };
+
+            svcx_result r = svcx_vector_push(out, &part);
+	    if (r != SVCX_OK) {
+		return SVCX_SV_SPLIT_ERR;
+            }
+
+	    start = i + 1;
+	}
+    }
+
+    return SVCX_OK;
+}
+
+
+
+
+SVCXDEF void svcx_sb_init(svcx_string_builder *sb, svcx_allocator a) {
+    svcx_vector_init(&sb->buf, sizeof(char), a);
+}
+
+SVCXDEF void svcx_sb_clear(svcx_string_builder *sb) {
+    svcx_vector_clear(&sb->buf);
+}
+
+SVCXDEF void svcx_sb_free(svcx_string_builder *sb) {
+    svcx_vector_clear(&sb->buf);
+}
+
+SVCXDEF svcx_result svcx_sb_push_char(svcx_string_builder *sb, char c) {
+    if (svcx_vector_push(&sb->buf, &c) != SVCX_OK) {
+	return SVCX_SB_PUSHC_ERR;
+    }
+    return SVCX_OK;
+}
+
+SVCXDEF svcx_result svcx_sb_append(
+    svcx_string_builder *sb,                                   
+    const char *str,
+    size_t len
+) {
+    SVCX_ASSERT(str || len == 0);
+
+    if (len == 0) {
+	return SVCX_OK;
+    }
+
+    size_t old_size = sb->buf.size;
+
+    svcx_result r = svcx_vector_reserve(&sb->buf, old_size + len);
+
+    if (r != SVCX_OK) {
+	return SVCX_SB_APPEND_ERR;
+    }
+
+    memcpy((char *)sb->buf.data + old_size, str, len);
+    sb->buf.size += len;
+
+    return SVCX_OK;
+}
+
+SVCXDEF svcx_result svcx_sb_append_cstr(
+    svcx_string_builder *sb,
+    const char *cstr
+) {
+    return svcx_sb_append(sb, cstr, strlen(cstr));
+}
+
+SVCXDEF svcx_result svcx_sb_append_sv(
+    svcx_string_builder *sb,
+    svcx_string_view sv
+) {
+    if (sv.len == 0) {
+	return SVCX_OK;
+    }
+
+    size_t new_size = sb->buf.size + sv.len;
+
+    svcx_result r = svcx_vector_reserve(&sb->buf, new_size);
+    if (r != SVCX_OK) {
+	return SVCX_SB_APPEND_SV_ERR;
+    }
+
+    memcpy(
+	   (char *)sb->buf.data + sb->buf.size,
+           sv.data,
+	   sv.len
+    );
+
+    sb->buf.size = new_size;
+    
+    return SVCX_OK;
+}
+
+SVCXDEF svcx_result svcx_sb_append_fmt(
+    svcx_string_builder *sb,
+    const char *fmt,
+    ...
+) {
+    va_list args;
+    va_start(args, fmt);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    int needed = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+
+    if (needed < 0) {
+        va_end(args_copy);
+	return SVCX_SB_FMT_INVALID_ARG_ERR;
+    }
+
+    size_t old_size = sb->buf.size;
+
+    svcx_result r = svcx_vector_reserve(&sb->buf, old_size + (size_t)needed);
+
+    if (r != SVCX_OK) {
+        va_end(args_copy);
+	return SVCX_SB_FMT_RESERVE_ERR;
+    }
+
+    vsnprintf(
+        (char *)sb->buf.data + old_size,
+	(size_t)needed + 1,
+	fmt,
+	args_copy
+    );
+    va_end(args_copy);
+    sb->buf.size += (size_t)needed;
+    return SVCX_OK;
+}
+
+SVCXDEF const char *svcx_sb_cstr(svcx_string_builder *sb) {
+    char zero = '\0';
+
+    if (sb->buf.size == sb->buf.cap ||
+        ((char *)sb->buf.data)[sb->buf.size] != '\0') {
+        svcx_vector_push(&sb->buf, &zero);
+	sb->buf.size--;
+    }
+
+    return (const char *)sb->buf.data;
+}
+
+SVCXDEF char *svcx_sb_build(svcx_string_builder *sb) {
+    char zero = '\0';
+    svcx_vector_push(&sb->buf, &zero);
+    return (char *)sb->buf.data;
+}
+
+SVCXDEF svcx_string_view svcx_sb_view(svcx_string_builder *sb) {
+    return (svcx_string_view) {
+        .data = (const char *)sb->buf.data,
+	.len = sb->buf.size
+    };
+}
+
+
+    
 
 
 #endif // SVCX_IMPLEMENTATION
