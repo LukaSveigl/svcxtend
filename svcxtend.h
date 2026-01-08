@@ -4,6 +4,10 @@
  * This is a small library containing various utility functions for C
  * development.
  *
+ * The structure of this library is inspired by the following projects:
+ * - https://github.com/tsoding/nob.h
+ * - https://github.com/nothings/stb/blob/master/docs/stb_howto.txt
+ *
  * # Small example:
  *
  * ```c
@@ -26,7 +30,8 @@
  * - SVCXDEF - Can be redefined to append additional flags to function
  *   declarations, for example `#define SVCXDEF static inline` will
  *   append the static inline keywords to all functions in the file.
- *
+ * - SVCX_DEBUG - If defined, enables assertions inside svcx functions
+ *   that validate the data passed into them.
  *
  * # Contents
  *
@@ -34,7 +39,7 @@
  * - A default allocator
  * - An arena allocator
  * - A vector
- * - Rest to be added
+ * - A string view (non-owning) and string builder (owning) constructs
  */
 
 #ifndef SVCXTEND_H
@@ -315,6 +320,9 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
  * The svcx_vector_clear function resets the vector's size count to 0,
  * effectively discarding the data and starting the overwriting process.
  *
+ * The svcx_vector_reserve function attempts to reserve at least the min_cap
+ * memory in the vector's internal buffer.
+ *
  * The svcx_vector_push function takes in a pointer to the element to be
  * added to the end of the vector. Because this can be cumbersome, a macro
  * SVCX_VECTOR_PUSH(v, T, value) is provided, allowing the user to pass in
@@ -342,6 +350,11 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
  * The svcx_vector_free function frees the memory of the vector and zeroes
  * it out it's data fields.
  *
+ * The svcx_vector_size function returns the number of elements in the vector.
+ *
+ * The foreach_v and foreach_a macros allow the user to write for-each style
+ * loops on vectors and arrays respectively.
+ *
  * Example:
  * ```c
  * svcx_arena arena;
@@ -358,7 +371,7 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
  * SVCX_VECTOR_PUSH(&v, int, 11);
  *
  * int val;
- * svcx_vector_pop(&v, &val); // Val holds last element
+ * svcx_vector_pop(&v, &val); // val holds last element
  *
  * int at_2 = *(int*)svcx_vector_at(&v, 2);
  * int tmp = 69;
@@ -367,8 +380,13 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
  * int arr[] = {1, 2, 3};
  * svcx_vector v2;
  * svcx_allocator def = svcx_default_allocator();
- * svcx_vector_from_array(&v2, arr, SVCX_ARRAY_LEN(arr), sizeof(int), def;
+ * svcx_vector_from_array(&v2, arr, SVCX_ARRAY_LEN(arr), sizeof(int), def);
  * svcx_vector_append(&v, &v2);
+ *
+ * foreach_v(int *it, v2) {
+ *    printf("%d ", *it);
+ * }
+ *
  * svcx_vector_free(&v2);
  * ```
  */
@@ -410,11 +428,86 @@ SVCXDEF size_t svcx_vector_size(svcx_vector *v);
 
 
 
+/*
+ * A string view is a non-owning and immutable data structure for representing
+ * strings of characters. The value of the string view can refer to string
+ * literals, string builder buffers, or substrings and is binary-safe (can
+ * contain the '\0' character).
+ *
+ * The string view works in tandem with the string builder, which is described
+ * below.
+ */
 typedef struct svcx_string_view {
     const char *data;
     size_t len;
 } svcx_string_view;
 
+/*
+ * Functions for working with a string view.
+ *
+ * The svcx_sv_from_parts function allows for manual construction of a string
+ * view, in case this is needed. More often, users will use the next function.
+ *
+ * The svcx_sv_from_cstr function constructs a string view from the provided
+ * C string, automatically calculating its length.
+ *
+ * The svcx_sv_contains function is used for checking if the needle string view
+ * is contained in the haystack string view. If it is, the function returns
+ * true, otherwise it returns false.
+ *
+ * The svcx_sv_starts_with and svcx_sv_ends_with functions check if the
+ * string view starts or ends with the given prefix/suffix - if yes, the
+ * functions return true, and false otherwise.
+ *
+ * The svcx_sv_trim_start and svcx_trim_end functions trim the whitespace from
+ * string view from the beginning/end respectively, returning a new string view.
+ *
+ * The svcx_sv_split function splits the string view based on the provided
+ * delimiter and returns the different string views in the out vector. The
+ * out vector must be initialized before calling this function.
+ *
+ * Along with the functions, a SVCX_SV macro is provided for easier creation
+ * of string views.
+ *
+ * Example:
+ * ```c
+ * svcx_arena arena;
+ * svcx_arena_init(&arena, 1024 * 1024);
+ * svcx_allocator alloc = svcx_arena_allocator(&arena);
+ * svcx_string_view sv1 = svcx_sv_from_cstr("hello world");
+ * svcx_string_view sv2 = svcx_sv_from_cstr("hello");
+ * svcx_string_view sv3 = svcx_sv_from_cstr("world");
+ *
+ * assert(svcx_sv_starts_with(sv1, sv2));
+ * assert(svcx_sv_ends_with(sv1, sv3));
+ * assert(!svcx_sv_starts_with(sv1, sv3));
+ * assert(!svcx_sv_ends_with(sv1, sv2));
+ *
+ * svcx_string_view sub = svcx_sv_from_parts(sv1.data + 6, 5);
+ * assert(svcx_sv_ends_with(sub, svcx_sv_from_cstr("world")));
+ *
+ * svcx_string_builder sb;
+ * svcx_sb_init(&sb, alloc);
+ *
+ * SVCX_SB_APPEND_LIT(&sb, "Hello");
+ * SVCX_SB_APPEND_LIT(&sb, ", ");
+ * SVCX_SB_APPEND_LIT(&sb, "World");
+ *
+ * svcx_string_view exclaim = svcx_sv_from_cstr("!");
+ * svcx_sb_append_sv(&sb, exclaim);
+ *
+ * svcx_string_view built = svcx_sb_view(&sb);
+ * assert(built.len == sizeof("Hello, World!") - 1);
+ *
+ * svcx_string_view hello = svcx_sv_from_cstr("Hello");
+ * svcx_string_view world = svcx_sv_from_cstr("World");
+ *
+ * assert(svcx_sv_contains(built, hello));
+ * assert(svcx_sv_contains(built, world));
+ * 
+ * svcx_arena_free_all(&arena);
+ * ```
+ */
 SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size);
 SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data);
 SVCXDEF bool svcx_sv_contains(
@@ -436,10 +529,70 @@ SVCXDEF svcx_result svcx_sv_split(
 
 
 
+
+/*
+ * A string builder is an owning and mutable data structure for dynamically
+ * creating strings of characters, but it does not provide Unicode semantics.
+ * The string builder is built on top of the svcx_vector and is thus arena friendly.
+ */
 typedef struct svcx_string_builder {
     svcx_vector buf;
 } svcx_string_builder;
 
+/*
+ * Functions for manipulating a string builder.
+ *
+ * The svcx_sb_init function initializes the string builder with the given
+ * allocator.
+ *
+ * The svcx_sb_clear function clears the data inside the string builder by
+ * clearing the buffer vector. This allows the string builder to be reused
+ * as the memory remains allocated.
+ *
+ * The svcx_sb_free function frees the memory held by the string builder,
+ * rendering it unusable in the future. The free function depends on the
+ * provided allocator, making it a no-op for arenas.
+ *
+ * The svcx_sb_push_char function pushes the given character to the end
+ * of the string builder.
+ *
+ * The svcx_sb_append function appends the given C string to the string
+ * builder. This is a manual function, meaning the size must be provided
+ * by the user, thus the next function will be more commonly used.
+ *
+ * The svcx_sb_append_cstr function appends the given C string to the
+ * string builder, automatically calculating the length. It is a wrapper
+ * around the svcx_sb_append function.
+ *
+ * The svcx_sb_append_sv function appends the string represented by the
+ * given string view to the string builder.
+ *
+ * The svcx_sb_append_fmt function is a variadic function, meaning it
+ * allows for an arbitrary number of parameters, and essentially acts
+ * as C's printf() function, allowing the user to specify a format
+ * string and parameters from which to construct the string to be
+ * appended to the string builder.
+ *
+ * The svcx_sb_cstr function returns a null-terminated view (C string)
+ * from the string builder's buffer. The returned string is valid until
+ * the next append or clear, and arena backed strings live as long as
+ * the arena.
+ *
+ * The svcx_sb_build function finalizes the string builder, essentially
+ * transfering ownership of the data to the returned pointer. The function
+ * returns the string constructed by the string builder. After calling this
+ * function, the string builder should not be used again.
+ *
+ * The svcx_sb_view function returns a non-owning string view of the data
+ * contained within the string builder.
+ *
+ * Alongside these functions, a SVCX_SB_APPEND_LIT macro is provided, which
+ * increases ergonomics of appending to the string builder.
+ *
+ * Example: An example of string builder functions is provided in the
+ * string view example, as they work in tandem.
+ *
+ */
 SVCXDEF void svcx_sb_init(svcx_string_builder *sb, svcx_allocator a);
 SVCXDEF void svcx_sb_clear(svcx_string_builder *sb);
 SVCXDEF void svcx_sb_free(svcx_string_builder *sb);
@@ -480,7 +633,7 @@ SVCXDEF svcx_string_view svcx_sb_view(svcx_string_builder *sb);
 SVCXDEF const char *svcx_error_string(svcx_result r) {
     switch (r) {
     case SVCX_OK:
-      return "no rerror";
+      return "no error";
     case SVCX_VEC_GROW_MEM_ERR:
       return "vector grow could not allocate memory";
     case SVCX_VEC_ERR_OOM:
@@ -954,7 +1107,7 @@ SVCXDEF void svcx_sb_clear(svcx_string_builder *sb) {
 }
 
 SVCXDEF void svcx_sb_free(svcx_string_builder *sb) {
-    svcx_vector_clear(&sb->buf);
+    svcx_vector_free(&sb->buf);
 }
 
 SVCXDEF svcx_result svcx_sb_push_char(svcx_string_builder *sb, char c) {

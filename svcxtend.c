@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define SVCX_DEBUG
 #define SVCX_IMPLEMENTATION
 #include "svcxtend.h"
 
@@ -74,6 +75,6 @@ int main() {
     assert(svcx_sv_contains(built, hello));
     assert(svcx_sv_contains(built, world));
     
-    printf("Hello, World!\n");
+    svcx_arena_free_all(&arena);
     return 0;
 }
