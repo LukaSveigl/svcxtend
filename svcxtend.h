@@ -1,46 +1,46 @@
-/*
- * svcxtend - Sveigl's C eXtended
- *
- * This is a small library containing various utility functions for C
- * development.
- *
- * The structure of this library is inspired by the following projects:
- * - https://github.com/tsoding/nob.h
- * - https://github.com/nothings/stb/blob/master/docs/stb_howto.txt
- *
- * # Small example:
- *
- * ```c
- * #define SVCX_IMPLEMENTATION
- * #include "svcxtend.h"
- *
- * int main () {
- *     svcx_allocator a = svcx_default_allocator();
- *     int *ptr = svcx_alloc(&a, 10 * sizeof(10));
- *     ...
- * }
- * ```
- * # Macro interface
- *
- * This library exposes multiple macros that can be defined by the user
- * to change various aspects of the functionality. The list of macros:
- *
- * - SVCX_IMPLEMENTATION - Enables the definition of functions, if not
- *   defined as in the example, only function declarations are included.
- * - SVCXDEF - Can be redefined to append additional flags to function
- *   declarations, for example `#define SVCXDEF static inline` will
- *   append the static inline keywords to all functions in the file.
- * - SVCX_DEBUG - If defined, enables assertions inside svcx functions
- *   that validate the data passed into them.
- *
- * # Contents
- *
- * This library contains various utilities for C development, such as:
- * - A default allocator
- * - An arena allocator
- * - A vector
- * - A string view (non-owning) and string builder (owning) constructs
- */
+//
+// svcxtend - Sveigl's C eXtended
+//
+// This is a small library containing various utility functions for C
+// development.
+//
+// The structure of this library is inspired by the following projects:
+// - https://github.com/tsoding/nob.h
+// - https://github.com/nothings/stb/blob/master/docs/stb_howto.txt
+//
+// # Small example:
+//
+// ```c
+// #define SVCX_IMPLEMENTATION
+// #include "svcxtend.h"
+//
+// int main () {
+//     svcx_allocator a = svcx_default_allocator();
+//     int *ptr = svcx_alloc(&a, 10 * sizeof(10));
+//     ...
+// }
+// ```
+// # Macro interface
+//
+// This library exposes multiple macros that can be defined by the user
+// to change various aspects of the functionality. The list of macros:
+//
+// - SVCX_IMPLEMENTATION - Enables the definition of functions, if not
+//   defined as in the example, only function declarations are included.
+// - SVCXDEF - Can be redefined to append additional flags to function
+//   declarations, for example `#define SVCXDEF static inline` will
+//   append the static inline keywords to all functions in the file.
+// - SVCX_DEBUG - If defined, enables assertions inside svcx functions
+//   that validate the data passed into them.
+//
+// # Contents
+//
+// This library contains various utilities for C development, such as:
+// - A default allocator
+// - An arena allocator
+// - A vector
+// - A string view (non-owning) and string builder (owning) constructs
+
 
 #ifndef SVCXTEND_H
 #define SVCXTEND_H
@@ -76,23 +76,23 @@
 #endif // SVCX_DEBUG
 #endif // SVCX_ASSERT
 
-/*
- * Some helper macros to make code more ergonomic.
- *
- * The SVCX_UNUSED macro can be used in functions to suppress unused argument
- * warnings:
- * ```c
- * int foo(int unused) {
- *     SVCX_UNUSED(unused);
- *     return 0;
- * }
- * ```
- *
- * The SVCX_UNSUPPORTED macro can be used within functions that have to exist to
- * satisfy the compiler but should not be used.
- *
- * The SVCX_ARRAY_LEN macro is here to make getting array length less cluttered.
- */
+//
+// Some helper macros to make code more ergonomic.
+//
+// The SVCX_UNUSED macro can be used in functions to suppress unused argument
+// warnings:
+// ```c
+// int foo(int unused) {
+//     SVCX_UNUSED(unused);
+//     return 0;
+// }
+// ```
+//
+// The SVCX_UNSUPPORTED macro can be used within functions that have to exist to
+// satisfy the compiler but should not be used.
+//
+// The SVCX_ARRAY_LEN macro is here to make getting array length less cluttered.
+//
 #define SVCX_UNUSED(value) (void)(value)
 #define SVCX_UNSUPPORTED(message) do { fprintf(stderr, "%s:%d: UNSUPPORTED: %s\n", __FILE__, __LINE__, message); abort(); } while (0)
 #define SVCX_ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
@@ -160,49 +160,49 @@ typedef struct svcx_allocator {
     void *ctx;    
 } svcx_allocator;
 
-/*
- * Internal default allocator functions. These can be safely ignored.
- * To interact with the allocators, use the functions in the block
- * beneath this one.
- */
+//
+// Internal default allocator functions. These can be safely ignored.
+// To interact with the allocators, use the functions in the block
+// beneath this one.
+//
 SVCXDEF void *svcx__malloc(void *ctx, size_t size);
 SVCXDEF void *svcx__realloc(void *ctx, void *ptr, size_t size);
 SVCXDEF void svcx__free(void *ctx, void *ptr);
 
 
-/*
- * The allocator helper functions, to be used in actual code.
- *
- * The svcx_default_allocator returns the default allocator, which
- * supports all three key operations: allocation, reallocation and
- * freeing.
- *
- * The svcx_alloc function performs the allocator's allocation operation
- * and returns a pointer to the allocated memory.
- *
- * The svcx_realloc function performs the reallocation operation
- * of the allocator, if one is available (for example, the arena
- * allocator does not support reallocation.
- *
- * The svcx_free function performs the free operation on the provided
- * pointer, if the allocator supports it (for example, in the arena
- * allocator, this operation is a no-op and does nothing).
- *
- * The svcx_allocator_is_valid function checks if the custom defined
- * allocator is valid.
- *
- * The svcx_alloc_zero function uses the allocation function of the
- * provided allocator, while also setting the allocated memory to
- * zero.
- *
- * Example:
- * ```c
- * svcx_allocator a = svcx_default_allocator();
- * int *ptr = (int *)svcx_alloc(&a, 10 * sizeof(int));
- * ptr = (int *)svcx_realloc(&a, 20 * sizeof(int));
- * svcx_free(&a, ptr);
- * ```
- */
+//
+// The allocator helper functions, to be used in actual code.
+//
+// The svcx_default_allocator returns the default allocator, which
+// supports all three key operations: allocation, reallocation and
+// freeing.
+//
+// The svcx_alloc function performs the allocator's allocation operation
+// and returns a pointer to the allocated memory.
+//
+// The svcx_realloc function performs the reallocation operation
+// of the allocator, if one is available (for example, the arena
+// allocator does not support reallocation.
+//
+// The svcx_free function performs the free operation on the provided
+// pointer, if the allocator supports it (for example, in the arena
+// allocator, this operation is a no-op and does nothing).
+//
+// The svcx_allocator_is_valid function checks if the custom defined
+// allocator is valid.
+//
+// The svcx_alloc_zero function uses the allocation function of the
+// provided allocator, while also setting the allocated memory to
+// zero.
+//
+// Example:
+// ```c
+// svcx_allocator a = svcx_default_allocator();
+// int *ptr = (int *)svcx_alloc(&a, 10 * sizeof(int));
+// ptr = (int *)svcx_realloc(&a, 20 * sizeof(int));
+// svcx_free(&a, ptr);
+// ```
+//
 SVCXDEF svcx_allocator svcx_default_allocator(void);
 SVCXDEF void *svcx_alloc(svcx_allocator *a, size_t size);
 SVCXDEF void *svcx_realloc(svcx_allocator *a, void *ptr, size_t size);
@@ -233,47 +233,47 @@ typedef struct svcx_arena {
     size_t used;
 } svcx_arena;
 
-/*
- * Internal arena allocator functions. These can be safely ignored.
- * To create the arena and free it, use the functions in the block
- * below.
- */
+//
+// Internal arena allocator functions. These can be safely ignored.
+// To create the arena and free it, use the functions in the block
+// below.
+//
 SVCXDEF void *svcx_arena_alloc(void *ctx, size_t size);
 SVCXDEF void *svcx_arena_realloc(void *ctx, void *ptr, size_t size);
 SVCXDEF void svcx_arena_free(void *ctx, void *ptr);
 
 
-/*
- * The arena helper functions, to be used in actual code.
- *
- * The svcx_arena_allocator returns an arena allocator, which
- * holds the provided arena and uses it for memory allocation.
- *
- * The svcx_arena_init function performs the initialization of
- * the arena, which can be passed into the allocator.
- *
- * The svcx_arena_reset function resets the arena's used counter
- * effectively clearing the data an starting the process of
- * overwriting it.
- *
- * The svcx_arena_free_all function frees the arena's memory
- * and reseting it's fields, completely zeroing it out.
- *
- * Example:
- * ```c
- * svcx_arena arena = {0};
- * svcx_arena_init(&a, 1024 * 1024);
- * svcx_allocator a = svcx_arena_allocator(&arena);
- * int *ptr = svcx_alloc(&a, 1024);
- * if (!ptr) {
- *     printf("Arena memory depleted\n");
- * }
- * svcx_arena_reset(&arena);
- * int *ptr = svcx_alloc(&a, 1024);
- * svcx_arena_Free_all(&arena);
- * // Arena invalid here, must be reinitialized
- * ```
- */
+//
+// The arena helper functions, to be used in actual code.
+//
+// The svcx_arena_allocator returns an arena allocator, which
+// holds the provided arena and uses it for memory allocation.
+//
+// The svcx_arena_init function performs the initialization of
+// the arena, which can be passed into the allocator.
+//
+// The svcx_arena_reset function resets the arena's used counter
+// effectively clearing the data an starting the process of
+// overwriting it.
+//
+// The svcx_arena_free_all function frees the arena's memory
+// and reseting it's fields, completely zeroing it out.
+//
+// Example:
+// ```c
+// svcx_arena arena = {0};
+// svcx_arena_init(&a, 1024 * 1024);
+// svcx_allocator a = svcx_arena_allocator(&arena);
+// int *ptr = svcx_alloc(&a, 1024);
+// if (!ptr) {
+//     printf("Arena memory depleted\n");
+// }
+// svcx_arena_reset(&arena);
+// int *ptr = svcx_alloc(&a, 1024);
+// svcx_arena_Free_all(&arena);
+// // Arena invalid here, must be reinitialized
+// ```
+//
 SVCXDEF svcx_allocator svcx_arena_allocator(svcx_arena *arena);
 SVCXDEF void svcx_arena_init(svcx_arena *arena, size_t size);
 SVCXDEF void svcx_arena_reset(svcx_arena *arena);
@@ -307,89 +307,89 @@ typedef struct svcx_vector {
 SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
 
 
-/*
- * Functions for manipulating a vector. Some of these functions might be
- * slightly unergonomic to use, and ways to use them effectively are
- * shown in the example below.
- *
- * The svcx_vector_init function initializes the given vector with the provided
- * allocator. Stride needs to be provided in order to enable the vector to work
- * with any type, and is essentially just the size of the data type in the
- * vector.
- *
- * The svcx_vector_clear function resets the vector's size count to 0,
- * effectively discarding the data and starting the overwriting process.
- *
- * The svcx_vector_reserve function attempts to reserve at least the min_cap
- * memory in the vector's internal buffer.
- *
- * The svcx_vector_push function takes in a pointer to the element to be
- * added to the end of the vector. Because this can be cumbersome, a macro
- * SVCX_VECTOR_PUSH(v, T, value) is provided, allowing the user to pass in
- * actual values.
- *
- * The svcx_vector_pop function removes the last element from the vector and
- * returns it in the out_elem pointer.
- *
- * The svcx_vector_at function returns a pointer to the element at the given
- * index.
- *
- * The svcx_vector_insert function inserts the given element at the provided
- * index. Same as the push function, this function accepts a pointer to the
- * element to enable the vector to work with any type, however no wrapper
- * macro is provided for this function, as this operation is usually not
- * that common.
- *
- * The svcx_vector_append appends another vector to the end of the provided
- * vector.
- *
- * The svcx_vector_from_array function constructs and initializes a vector
- * with the elements of the provided array. The lenght of the array and
- * the stride (size of an array type) must be provided.
- *
- * The svcx_vector_free function frees the memory of the vector and zeroes
- * it out it's data fields.
- *
- * The svcx_vector_size function returns the number of elements in the vector.
- *
- * The foreach_v and foreach_a macros allow the user to write for-each style
- * loops on vectors and arrays respectively.
- *
- * Example:
- * ```c
- * svcx_arena arena;
- * svcx_arena_init(&arena, 1024 * 1024);
- *
- * svcx_vector v;
- * svcx_vector_init(&v, sizeof(int), svcx_arena_allocator(&arena));
- *
- * int item = 13;
- * svcx_vector_push(&v, sizeof(int), &item);
- * SVCX_VECTOR_PUSH(&v, int, 42);
- * SVCX_VECTOR_PUSH(&v, int, 37);
- * SVCX_VECTOR_PUSH(&v, int, 12);
- * SVCX_VECTOR_PUSH(&v, int, 11);
- *
- * int val;
- * svcx_vector_pop(&v, &val); // val holds last element
- *
- * int at_2 = *(int*)svcx_vector_at(&v, 2);
- * int tmp = 69;
- * svcx_vector_insert(&v, 2, &tmp);
- *
- * int arr[] = {1, 2, 3};
- * svcx_vector v2;
- * svcx_allocator def = svcx_default_allocator();
- * svcx_vector_from_array(&v2, arr, SVCX_ARRAY_LEN(arr), sizeof(int), def);
- * svcx_vector_append(&v, &v2);
- *
- * foreach_v(int *it, v2) {
- *    printf("%d ", *it);
- * }
- *
- * svcx_vector_free(&v2);
- * ```
- */
+//
+// Functions for manipulating a vector. Some of these functions might be
+// slightly unergonomic to use, and ways to use them effectively are
+// shown in the example below.
+//
+// The svcx_vector_init function initializes the given vector with the provided
+// allocator. Stride needs to be provided in order to enable the vector to work
+// with any type, and is essentially just the size of the data type in the
+// vector.
+//
+// The svcx_vector_clear function resets the vector's size count to 0,
+// effectively discarding the data and starting the overwriting process.
+//
+// The svcx_vector_reserve function attempts to reserve at least the min_cap
+// memory in the vector's internal buffer.
+//
+// The svcx_vector_push function takes in a pointer to the element to be
+// added to the end of the vector. Because this can be cumbersome, a macro
+// SVCX_VECTOR_PUSH(v, T, value) is provided, allowing the user to pass in
+// actual values.
+//
+// The svcx_vector_pop function removes the last element from the vector and
+// returns it in the out_elem pointer.
+//
+// The svcx_vector_at function returns a pointer to the element at the given
+// index.
+//
+// The svcx_vector_insert function inserts the given element at the provided
+// index. Same as the push function, this function accepts a pointer to the
+// element to enable the vector to work with any type, however no wrapper
+// macro is provided for this function, as this operation is usually not
+// that common.
+//
+// The svcx_vector_append appends another vector to the end of the provided
+// vector.
+//
+// The svcx_vector_from_array function constructs and initializes a vector
+// with the elements of the provided array. The lenght of the array and
+// the stride (size of an array type) must be provided.
+//
+// The svcx_vector_free function frees the memory of the vector and zeroes
+// it out it's data fields.
+//
+// The svcx_vector_size function returns the number of elements in the vector.
+//
+// The foreach_v and foreach_a macros allow the user to write for-each style
+// loops on vectors and arrays respectively.
+//
+// Example:
+// ```c
+// svcx_arena arena;
+// svcx_arena_init(&arena, 1024 * 1024);
+//
+// svcx_vector v;
+// svcx_vector_init(&v, sizeof(int), svcx_arena_allocator(&arena));
+//
+// int item = 13;
+// svcx_vector_push(&v, sizeof(int), &item);
+// SVCX_VECTOR_PUSH(&v, int, 42);
+// SVCX_VECTOR_PUSH(&v, int, 37);
+// SVCX_VECTOR_PUSH(&v, int, 12);
+// SVCX_VECTOR_PUSH(&v, int, 11);
+//
+// int val;
+// svcx_vector_pop(&v, &val); // val holds last element
+//
+// int at_2 = *(int*)svcx_vector_at(&v, 2);
+// int tmp = 69;
+// svcx_vector_insert(&v, 2, &tmp);
+//
+// int arr[] = {1, 2, 3};
+// svcx_vector v2;
+// svcx_allocator def = svcx_default_allocator();
+// svcx_vector_from_array(&v2, arr, SVCX_ARRAY_LEN(arr), sizeof(int), def);
+// svcx_vector_append(&v, &v2);
+//
+// foreach_v(int *it, v2) {
+//    printf("%d ", *it);
+// }
+//
+// svcx_vector_free(&v2);
+// ```
+//
 SVCXDEF void svcx_vector_init(svcx_vector *v, size_t stride, svcx_allocator a);
 SVCXDEF void svcx_vector_clear(svcx_vector *v);
 SVCXDEF svcx_result svcx_vector_reserve(svcx_vector *v, size_t min_cap);
@@ -442,76 +442,76 @@ typedef struct svcx_string_view {
     size_t len;
 } svcx_string_view;
 
-/*
- * Functions for working with a string view.
- *
- * The svcx_sv_from_parts function allows for manual construction of a string
- * view, in case this is needed. More often, users will use the next function.
- *
- * The svcx_sv_from_cstr function constructs a string view from the provided
- * C string, automatically calculating its length.
- *
- * The svcx_sv_contains function is used for checking if the needle string view
- * is contained in the haystack string view. If it is, the function returns
- * true, otherwise it returns false.
- *
- * The svcx_sv_find function is used for getting the index of the first
- * character of needle in the haystack. If the function could not find
- * the needle in the haystack, -1 is returned.
- *
- * The svcx_sv_starts_with and svcx_sv_ends_with functions check if the
- * string view starts or ends with the given prefix/suffix - if yes, the
- * functions return true, and false otherwise.
- *
- * The svcx_sv_trim_start and svcx_trim_end functions trim the whitespace from
- * string view from the beginning/end respectively, returning a new string view.
- *
- * The svcx_sv_split function splits the string view based on the provided
- * delimiter and returns the different string views in the out vector. The
- * out vector must be initialized before calling this function.
- *
- * Along with the functions, a SVCX_SV macro is provided for easier creation
- * of string views.
- *
- * Example:
- * ```c
- * svcx_arena arena;
- * svcx_arena_init(&arena, 1024 * 1024);
- * svcx_allocator alloc = svcx_arena_allocator(&arena);
- * svcx_string_view sv1 = svcx_sv_from_cstr("hello world");
- * svcx_string_view sv2 = svcx_sv_from_cstr("hello");
- * svcx_string_view sv3 = svcx_sv_from_cstr("world");
- *
- * assert(svcx_sv_starts_with(sv1, sv2));
- * assert(svcx_sv_ends_with(sv1, sv3));
- * assert(!svcx_sv_starts_with(sv1, sv3));
- * assert(!svcx_sv_ends_with(sv1, sv2));
- *
- * svcx_string_view sub = svcx_sv_from_parts(sv1.data + 6, 5);
- * assert(svcx_sv_ends_with(sub, svcx_sv_from_cstr("world")));
- *
- * svcx_string_builder sb;
- * svcx_sb_init(&sb, alloc);
- *
- * SVCX_SB_APPEND_LIT(&sb, "Hello");
- * SVCX_SB_APPEND_LIT(&sb, ", ");
- * SVCX_SB_APPEND_LIT(&sb, "World");
- *
- * svcx_string_view exclaim = svcx_sv_from_cstr("!");
- * svcx_sb_append_sv(&sb, exclaim);
- *
- * svcx_string_view built = svcx_sb_view(&sb);
- * assert(built.len == sizeof("Hello, World!") - 1);
- *
- * svcx_string_view hello = svcx_sv_from_cstr("Hello");
- * svcx_string_view world = svcx_sv_from_cstr("World");
- *
- * assert(svcx_sv_contains(built, hello));
- * assert(svcx_sv_contains(built, world));
- * 
- * svcx_arena_free_all(&arena);
- * ```
- */
+//
+// Functions for working with a string view.
+//
+// The svcx_sv_from_parts function allows for manual construction of a string
+// view, in case this is needed. More often, users will use the next function.
+//
+// The svcx_sv_from_cstr function constructs a string view from the provided
+// C string, automatically calculating its length.
+//
+// The svcx_sv_contains function is used for checking if the needle string view
+// is contained in the haystack string view. If it is, the function returns
+// true, otherwise it returns false.
+//
+// The svcx_sv_find function is used for getting the index of the first
+// character of needle in the haystack. If the function could not find
+// the needle in the haystack, -1 is returned.
+//
+// The svcx_sv_starts_with and svcx_sv_ends_with functions check if the
+// string view starts or ends with the given prefix/suffix - if yes, the
+// functions return true, and false otherwise.
+//
+// The svcx_sv_trim_start and svcx_trim_end functions trim the whitespace from
+// string view from the beginning/end respectively, returning a new string view.
+//
+// The svcx_sv_split function splits the string view based on the provided
+// delimiter and returns the different string views in the out vector. The
+// out vector must be initialized before calling this function.
+//
+// Along with the functions, a SVCX_SV macro is provided for easier creation
+// of string views.
+//
+// Example:
+// ```c
+// svcx_arena arena;
+// svcx_arena_init(&arena, 1024 * 1024);
+// svcx_allocator alloc = svcx_arena_allocator(&arena);
+// svcx_string_view sv1 = svcx_sv_from_cstr("hello world");
+// svcx_string_view sv2 = svcx_sv_from_cstr("hello");
+// svcx_string_view sv3 = svcx_sv_from_cstr("world");
+//
+// assert(svcx_sv_starts_with(sv1, sv2));
+// assert(svcx_sv_ends_with(sv1, sv3));
+// assert(!svcx_sv_starts_with(sv1, sv3));
+// assert(!svcx_sv_ends_with(sv1, sv2));
+//
+// svcx_string_view sub = svcx_sv_from_parts(sv1.data + 6, 5);
+// assert(svcx_sv_ends_with(sub, svcx_sv_from_cstr("world")));
+//
+// svcx_string_builder sb;
+// svcx_sb_init(&sb, alloc);
+//
+// SVCX_SB_APPEND_LIT(&sb, "Hello");
+// SVCX_SB_APPEND_LIT(&sb, ", ");
+// SVCX_SB_APPEND_LIT(&sb, "World");
+//
+// svcx_string_view exclaim = svcx_sv_from_cstr("!");
+// svcx_sb_append_sv(&sb, exclaim);
+//
+// svcx_string_view built = svcx_sb_view(&sb);
+// assert(built.len == sizeof("Hello, World!") - 1);
+//
+// svcx_string_view hello = svcx_sv_from_cstr("Hello");
+// svcx_string_view world = svcx_sv_from_cstr("World");
+//
+// assert(svcx_sv_contains(built, hello));
+// assert(svcx_sv_contains(built, world));
+// 
+// svcx_arena_free_all(&arena);
+// ```
+//
 SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size);
 SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data);
 SVCXDEF bool svcx_sv_contains(
@@ -547,60 +547,60 @@ typedef struct svcx_string_builder {
     svcx_vector buf;
 } svcx_string_builder;
 
-/*
- * Functions for manipulating a string builder.
- *
- * The svcx_sb_init function initializes the string builder with the given
- * allocator.
- *
- * The svcx_sb_clear function clears the data inside the string builder by
- * clearing the buffer vector. This allows the string builder to be reused
- * as the memory remains allocated.
- *
- * The svcx_sb_free function frees the memory held by the string builder,
- * rendering it unusable in the future. The free function depends on the
- * provided allocator, making it a no-op for arenas.
- *
- * The svcx_sb_push_char function pushes the given character to the end
- * of the string builder.
- *
- * The svcx_sb_append function appends the given C string to the string
- * builder. This is a manual function, meaning the size must be provided
- * by the user, thus the next function will be more commonly used.
- *
- * The svcx_sb_append_cstr function appends the given C string to the
- * string builder, automatically calculating the length. It is a wrapper
- * around the svcx_sb_append function.
- *
- * The svcx_sb_append_sv function appends the string represented by the
- * given string view to the string builder.
- *
- * The svcx_sb_append_fmt function is a variadic function, meaning it
- * allows for an arbitrary number of parameters, and essentially acts
- * as C's printf() function, allowing the user to specify a format
- * string and parameters from which to construct the string to be
- * appended to the string builder.
- *
- * The svcx_sb_cstr function returns a null-terminated view (C string)
- * from the string builder's buffer. The returned string is valid until
- * the next append or clear, and arena backed strings live as long as
- * the arena.
- *
- * The svcx_sb_build function finalizes the string builder, essentially
- * transfering ownership of the data to the returned pointer. The function
- * returns the string constructed by the string builder. After calling this
- * function, the string builder should not be used again.
- *
- * The svcx_sb_view function returns a non-owning string view of the data
- * contained within the string builder.
- *
- * Alongside these functions, a SVCX_SB_APPEND_LIT macro is provided, which
- * increases ergonomics of appending to the string builder.
- *
- * Example: An example of string builder functions is provided in the
- * string view example, as they work in tandem.
- *
- */
+//
+// Functions for manipulating a string builder.
+//
+// The svcx_sb_init function initializes the string builder with the given
+// allocator.
+//
+// The svcx_sb_clear function clears the data inside the string builder by
+// clearing the buffer vector. This allows the string builder to be reused
+// as the memory remains allocated.
+//
+// The svcx_sb_free function frees the memory held by the string builder,
+// rendering it unusable in the future. The free function depends on the
+// provided allocator, making it a no-op for arenas.
+//
+// The svcx_sb_push_char function pushes the given character to the end
+// of the string builder.
+//
+// The svcx_sb_append function appends the given C string to the string
+// builder. This is a manual function, meaning the size must be provided
+// by the user, thus the next function will be more commonly used.
+//
+// The svcx_sb_append_cstr function appends the given C string to the
+// string builder, automatically calculating the length. It is a wrapper
+// around the svcx_sb_append function.
+//
+// The svcx_sb_append_sv function appends the string represented by the
+// given string view to the string builder.
+//
+// The svcx_sb_append_fmt function is a variadic function, meaning it
+// allows for an arbitrary number of parameters, and essentially acts
+// as C's printf() function, allowing the user to specify a format
+// string and parameters from which to construct the string to be
+// appended to the string builder.
+//
+// The svcx_sb_cstr function returns a null-terminated view (C string)
+// from the string builder's buffer. The returned string is valid until
+// the next append or clear, and arena backed strings live as long as
+// the arena.
+//
+// The svcx_sb_build function finalizes the string builder, essentially
+// transfering ownership of the data to the returned pointer. The function
+// returns the string constructed by the string builder. After calling this
+// function, the string builder should not be used again.
+//
+// The svcx_sb_view function returns a non-owning string view of the data
+// contained within the string builder.
+//
+// Alongside these functions, a SVCX_SB_APPEND_LIT macro is provided, which
+// increases ergonomics of appending to the string builder.
+//
+// Example: An example of string builder functions is provided in the
+// string view example, as they work in tandem.
+//
+//
 SVCXDEF void svcx_sb_init(svcx_string_builder *sb, svcx_allocator a);
 SVCXDEF void svcx_sb_clear(svcx_string_builder *sb);
 SVCXDEF void svcx_sb_free(svcx_string_builder *sb);
