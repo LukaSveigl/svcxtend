@@ -455,6 +455,10 @@ typedef struct svcx_string_view {
  * is contained in the haystack string view. If it is, the function returns
  * true, otherwise it returns false.
  *
+ * The svcx_sv_find function is used for getting the index of the first
+ * character of needle in the haystack. If the function could not find
+ * the needle in the haystack, -1 is returned.
+ *
  * The svcx_sv_starts_with and svcx_sv_ends_with functions check if the
  * string view starts or ends with the given prefix/suffix - if yes, the
  * functions return true, and false otherwise.
@@ -511,6 +515,10 @@ typedef struct svcx_string_view {
 SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size);
 SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data);
 SVCXDEF bool svcx_sv_contains(
+    svcx_string_view haystack,
+    svcx_string_view needle
+);
+SVCXDEF size_t svcx_sv_find(
     svcx_string_view haystack,
     svcx_string_view needle
 );
@@ -1019,6 +1027,24 @@ SVCXDEF bool svcx_sv_contains(
     return false;
 }
 
+SVCXDEF size_t svcx_sv_find(
+    svcx_string_view haystack,
+    svcx_string_view needle
+) {
+    if (needle.len == 0) {
+	return 0;
+    }
+    if (needle.len > haystack.len) {
+	return -1;
+    }
+
+    for (size_t i = 0; i <= haystack.len - needle.len; i++) {
+	if (memcmp(haystack.data + i, needle.data, needle.len) == 0) {
+	    return i;
+        }
+    }
+    return -1;
+}
 
 SVCXDEF bool svcx_sv_starts_with(svcx_string_view sv, svcx_string_view prefix) {
     if (prefix.len > sv.len) {
