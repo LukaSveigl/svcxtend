@@ -41,7 +41,6 @@
 // - A vector
 // - A string view (non-owning) and string builder (owning) constructs
 
-
 #ifndef SVCXTEND_H
 #define SVCXTEND_H
 
@@ -51,26 +50,30 @@
  * the user to redefine the function prefixes, for example:
  *     `#define SVCXDEF static inline`
  * which allows the user to use the library multiple times in the project
- * without collision. 
+ * without collision.
  */
 #define SVCXDEF
 #endif // SVCXDEF
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #ifndef SVCX_ASSERT
 #ifdef SVCX_DEBUG
 #define SVCX_ASSERT(cond)                                                      \
-  do {                                                                         \
-    if (!(cond)) {                                                             \
-      fprintf(stderr, "%s:%d: ASSERT FAILED: %s", __FILE__, __LINE__, #cond);  \
-      abort();                                                                 \
-    }                                                                          \
-  } while (0)
+    do {                                                                       \
+        if (!(cond)) {                                                         \
+            fprintf(stderr,                                                    \
+                "%s:%d: ASSERT FAILED: %s",                                    \
+                __FILE__,                                                      \
+                __LINE__,                                                      \
+                #cond);                                                        \
+            abort();                                                           \
+        }                                                                      \
+    } while (0)
 #else
 #define SVCX_ASSERT(cond) ((void)0)
 #endif // SVCX_DEBUG
@@ -94,9 +97,13 @@
 // The SVCX_ARRAY_LEN macro is here to make getting array length less cluttered.
 //
 #define SVCX_UNUSED(value) (void)(value)
-#define SVCX_UNSUPPORTED(message) do { fprintf(stderr, "%s:%d: UNSUPPORTED: %s\n", __FILE__, __LINE__, message); abort(); } while (0)
-#define SVCX_ARRAY_LEN(array) (sizeof(array)/sizeof(array[0]))
-
+#define SVCX_UNSUPPORTED(message)                                              \
+    do {                                                                       \
+        fprintf(                                                               \
+            stderr, "%s:%d: UNSUPPORTED: %s\n", __FILE__, __LINE__, message);  \
+        abort();                                                               \
+    } while (0)
+#define SVCX_ARRAY_LEN(array) (sizeof(array) / sizeof(array[0]))
 
 /*
  * The results returned by SVCX functions.
@@ -131,7 +138,6 @@ typedef enum svcx_result {
 
 SVCXDEF const char *svcx_error_string(svcx_result);
 
-
 typedef void *(*svcx_alloc_fn)(void *ctx, size_t size);
 typedef void *(*svcx_realloc_fn)(void *ctx, void *ptr, size_t size);
 typedef void (*svcx_free_fn)(void *ctx, void *ptr);
@@ -155,9 +161,9 @@ typedef void (*svcx_free_fn)(void *ctx, void *ptr);
  */
 typedef struct svcx_allocator {
     svcx_alloc_fn alloc;
-    svcx_realloc_fn realloc;  
+    svcx_realloc_fn realloc;
     svcx_free_fn free;
-    void *ctx;    
+    void *ctx;
 } svcx_allocator;
 
 //
@@ -168,7 +174,6 @@ typedef struct svcx_allocator {
 SVCXDEF void *svcx__malloc(void *ctx, size_t size);
 SVCXDEF void *svcx__realloc(void *ctx, void *ptr, size_t size);
 SVCXDEF void svcx__free(void *ctx, void *ptr);
-
 
 //
 // The allocator helper functions, to be used in actual code.
@@ -210,9 +215,6 @@ SVCXDEF void svcx_free(svcx_allocator *a, void *ptr);
 SVCXDEF bool svcx_allocator_is_valid(const svcx_allocator *a);
 SVCXDEF void *svcx_alloc_zero(svcx_allocator *a, size_t size);
 
-
-
-
 /*
  * The arena which is used in the svcx_allocator. It should be used
  * in cases where a lot of memory needs to be allocated and freed in
@@ -241,7 +243,6 @@ typedef struct svcx_arena {
 SVCXDEF void *svcx_arena_alloc(void *ctx, size_t size);
 SVCXDEF void *svcx_arena_realloc(void *ctx, void *ptr, size_t size);
 SVCXDEF void svcx_arena_free(void *ctx, void *ptr);
-
 
 //
 // The arena helper functions, to be used in actual code.
@@ -279,9 +280,6 @@ SVCXDEF void svcx_arena_init(svcx_arena *arena, size_t size);
 SVCXDEF void svcx_arena_reset(svcx_arena *arena);
 SVCXDEF void svcx_arena_free_all(svcx_arena *arena);
 
-
-
-
 /*
  * The vector is essentially a dynamic array that holds data of
  * arbitrary types. The data is stored sequentially in memory,
@@ -305,7 +303,6 @@ typedef struct svcx_vector {
  * vector, use the functions in the block below.
  */
 SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap);
-
 
 //
 // Functions for manipulating a vector. Some of these functions might be
@@ -396,37 +393,34 @@ SVCXDEF svcx_result svcx_vector_reserve(svcx_vector *v, size_t min_cap);
 SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem);
 SVCXDEF svcx_result svcx_vector_pop(svcx_vector *v, void *out_elem);
 SVCXDEF void *svcx_vector_at(svcx_vector *v, size_t index);
-SVCXDEF svcx_result svcx_vector_insert(svcx_vector *v, size_t index, const void *elem);
-SVCXDEF svcx_result svcx_vector_append(svcx_vector *dst, const svcx_vector *src);
-SVCXDEF svcx_result svcx_vector_from_array(
-    svcx_vector *v,
+SVCXDEF svcx_result svcx_vector_insert(
+    svcx_vector *v, size_t index, const void *elem);
+SVCXDEF svcx_result svcx_vector_append(
+    svcx_vector *dst, const svcx_vector *src);
+SVCXDEF svcx_result svcx_vector_from_array(svcx_vector *v,
     const void *array,
     size_t count,
     size_t stride,
-    svcx_allocator a
-);
+    svcx_allocator a);
 SVCXDEF void svcx_vector_free(svcx_vector *v);
 SVCXDEF size_t svcx_vector_size(svcx_vector *v);
 
-#define SVCX_VECTOR_PUSH(v, T, value)					\
-    do {								\
-        T tmp = (value);						\
-        svcx_vector_push((v), &tmp);					\
+#define SVCX_VECTOR_PUSH(v, T, value)                                          \
+    do {                                                                       \
+        T tmp = (value);                                                       \
+        svcx_vector_push((v), &tmp);                                           \
     } while (0)
 
 // Taken from: https://stackoverflow.com/a/400970
-#define foreach_v(iter, v)						\
-    for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);	\
-         _keep = !_keep, _i++)						\
+#define foreach_v(iter, v)                                                     \
+    for (size_t _i = 0, _keep = 1; _keep && _i < svcx_vector_size(&v);         \
+        _keep = !_keep, _i++)                                                  \
         for (iter = svcx_vector_at(&v, _i); _keep; _keep = !_keep)
 
-#define foreach_a(iter, a)						\
-    for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);	\
-         _keep = !_keep, _i++)						\
+#define foreach_a(iter, a)                                                     \
+    for (size_t _i = 0, _keep = 1; _keep && _i < SVCX_ARRAY_LEN(a);            \
+        _keep = !_keep, _i++)                                                  \
         for (iter = (a) + _i; _keep; _keep = !_keep)
-
-
-
 
 /*
  * A string view is a non-owning and immutable data structure for representing
@@ -508,46 +502,32 @@ typedef struct svcx_string_view {
 //
 // assert(svcx_sv_contains(built, hello));
 // assert(svcx_sv_contains(built, world));
-// 
+//
 // svcx_arena_free_all(&arena);
 // ```
 //
 SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size);
 SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data);
 SVCXDEF bool svcx_sv_contains(
-    svcx_string_view haystack,
-    svcx_string_view needle
-);
-SVCXDEF size_t svcx_sv_find(
-    svcx_string_view haystack,
-    svcx_string_view needle
-);
+    svcx_string_view haystack, svcx_string_view needle);
+SVCXDEF size_t svcx_sv_find(svcx_string_view haystack, svcx_string_view needle);
 SVCXDEF bool svcx_sv_starts_with(svcx_string_view sv, svcx_string_view prefix);
 SVCXDEF bool svcx_sv_ends_with(svcx_string_view sv, svcx_string_view suffix);
 SVCXDEF svcx_string_view svcx_sv_trim_start(svcx_string_view sv);
 SVCXDEF svcx_string_view svcx_sv_trim_end(svcx_string_view sv);
 SVCXDEF svcx_string_view svcx_sv_trim(svcx_string_view sv);
 SVCXDEF svcx_result svcx_sv_split(
-    svcx_string_view sv,
-    char delimiter,
-    svcx_vector *out
-);
+    svcx_string_view sv, char delimiter, svcx_vector *out);
 SVCXDEF svcx_string_view svcx_sv_substring(
-    svcx_string_view sv,
-    size_t start,
-    size_t end
-);
+    svcx_string_view sv, size_t start, size_t end);
 
-
-#define SVCX_SV(lit) ((svcx_string_view){ (lit), sizeof(lit) - 1 })
-
-
-
+#define SVCX_SV(lit) ((svcx_string_view){(lit), sizeof(lit) - 1})
 
 /*
  * A string builder is an owning and mutable data structure for dynamically
  * creating strings of characters, but it does not provide Unicode semantics.
- * The string builder is built on top of the svcx_vector and is thus arena friendly.
+ * The string builder is built on top of the svcx_vector and is thus arena
+ * friendly.
  */
 typedef struct svcx_string_builder {
     svcx_vector buf;
@@ -612,79 +592,59 @@ SVCXDEF void svcx_sb_clear(svcx_string_builder *sb);
 SVCXDEF void svcx_sb_free(svcx_string_builder *sb);
 SVCXDEF svcx_result svcx_sb_push_char(svcx_string_builder *sb, char c);
 SVCXDEF svcx_result svcx_sb_append(
-    svcx_string_builder *sb,                                   
-    const char *str,
-    size_t len
-);
+    svcx_string_builder *sb, const char *str, size_t len);
 SVCXDEF svcx_result svcx_sb_append_cstr(
-    svcx_string_builder *sb,
-    const char *cstr
-);
+    svcx_string_builder *sb, const char *cstr);
 SVCXDEF svcx_result svcx_sb_append_sv(
-    svcx_string_builder *sb,
-    svcx_string_view sv
-);
+    svcx_string_builder *sb, svcx_string_view sv);
 SVCXDEF svcx_result svcx_sb_append_fmt(
-    svcx_string_builder *sb,
-    const char *fmt,
-    ...
-);
+    svcx_string_builder *sb, const char *fmt, ...);
 SVCXDEF const char *svcx_sb_cstr(svcx_string_builder *sb);
 SVCXDEF char *svcx_sb_build(svcx_string_builder *sb);
 SVCXDEF svcx_string_view svcx_sb_view(svcx_string_builder *sb);
 
-#define SVCX_SB_APPEND_LIT(sb, lit) \
-    svcx_sb_append_sv((sb), SVCX_SV(lit))
-
-
-
+#define SVCX_SB_APPEND_LIT(sb, lit) svcx_sb_append_sv((sb), SVCX_SV(lit))
 
 #ifdef SVCX_IMPLEMENTATION
-
-
-
 
 SVCXDEF const char *svcx_error_string(svcx_result r) {
     switch (r) {
     case SVCX_OK:
-      return "no error";
+        return "no error";
     case SVCX_VEC_GROW_MEM_ERR:
-      return "vector grow could not allocate memory";
+        return "vector grow could not allocate memory";
     case SVCX_VEC_ERR_OOM:
-	return "vector reserve out of memory";
+        return "vector reserve out of memory";
     case SVCX_VEC_PUSH_GROW_ERR:
-      return "vector push could not grow vector";
+        return "vector push could not grow vector";
     case SVCX_VEC_POP_EMPTY_ERR:
-      return "vector is empty on pop";
+        return "vector is empty on pop";
     case SVCX_VEC_INSERT_OOB:
-      return "index out of bounds on vector insert";
+        return "index out of bounds on vector insert";
     case SVCX_VEC_INSERT_GROW_ERR:
-      return "vector insert could not grow memory";
+        return "vector insert could not grow memory";
     case SVCX_VEC_APPEND_STRIDE_ERR:
-      return "vectors differ in stride values on append";
+        return "vectors differ in stride values on append";
     case SVCX_VEC_APPEND_GROW_ERR:
-      return "vector append could not grow vector";
+        return "vector append could not grow vector";
     case SVCX_VEC_FROM_ARR_MALLOC_ERR:
-      return "vector from array could not malloc memory";
+        return "vector from array could not malloc memory";
     case SVCX_SV_SPLIT_ERR:
-      return "string view split could not push to output vector";
+        return "string view split could not push to output vector";
     case SVCX_SB_PUSHC_ERR:
-      return "string builder could not push char to internal vector";
+        return "string builder could not push char to internal vector";
     case SVCX_SB_APPEND_ERR:
-      return "string builder could not reserve memory for append";
+        return "string builder could not reserve memory for append";
     case SVCX_SB_APPEND_SV_ERR:
-      return "string builder could not reserve memory for string view append";
+        return "string builder could not reserve memory for string view append";
     case SVCX_SB_FMT_INVALID_ARG_ERR:
-      return "string builder invalid arguments provided to format";
+        return "string builder invalid arguments provided to format";
     case SVCX_SB_FMT_RESERVE_ERR:
-      return "string builder could not reserve memory for format";
+        return "string builder could not reserve memory for format";
     default:
-      return "unknown error";      
-    }  
+        return "unknown error";
+    }
 }
-
-
-
 
 SVCXDEF void *svcx__malloc(void *ctx, size_t size) {
     SVCX_UNUSED(ctx);
@@ -700,7 +660,6 @@ SVCXDEF void svcx__free(void *ctx, void *ptr) {
     SVCX_UNUSED(ctx);
     free(ptr);
 }
-
 
 SVCXDEF svcx_allocator svcx_default_allocator(void) {
     svcx_allocator a = {
@@ -720,9 +679,7 @@ SVCXDEF void *svcx_realloc(svcx_allocator *a, void *ptr, size_t size) {
     return a->realloc(a->ctx, ptr, size);
 }
 
-SVCXDEF void svcx_free(svcx_allocator *a, void *ptr) {
-    a->free(a->ctx, ptr);
-}
+SVCXDEF void svcx_free(svcx_allocator *a, void *ptr) { a->free(a->ctx, ptr); }
 
 SVCXDEF bool svcx_allocator_is_valid(const svcx_allocator *a) {
     return a && a->alloc && a->free;
@@ -731,21 +688,16 @@ SVCXDEF bool svcx_allocator_is_valid(const svcx_allocator *a) {
 SVCXDEF void *svcx_alloc_zero(svcx_allocator *a, size_t size) {
     void *p = svcx_alloc(a, size);
     if (p) {
-        memset(p, 0, size);      
-    }   
+        memset(p, 0, size);
+    }
     return p;
 }
 
-
-
-
 SVCXDEF svcx_allocator svcx_arena_allocator(svcx_arena *arena) {
-    svcx_allocator a = {
-        .alloc = svcx_arena_alloc,
+    svcx_allocator a = {.alloc = svcx_arena_alloc,
         .realloc = svcx_arena_realloc,
         .free = svcx_arena_free,
-        .ctx = arena
-    };
+        .ctx = arena};
     return a;
 }
 
@@ -791,9 +743,6 @@ SVCXDEF void svcx_arena_free_all(svcx_arena *arena) {
     arena->used = 0;
 }
 
-
-
-
 SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap) {
     size_t new_cap = v->cap ? v->cap * 2 : 8;
     if (new_cap < min_cap) {
@@ -819,7 +768,7 @@ SVCXDEF svcx_result _svcx_vector_grow(svcx_vector *v, size_t min_cap) {
             return SVCX_VEC_GROW_MEM_ERR;
         }
     }
-    
+
     v->data = new_data;
     v->cap = new_cap;
     return SVCX_OK;
@@ -840,28 +789,28 @@ SVCXDEF void svcx_vector_clear(svcx_vector *v) {
 
 SVCXDEF svcx_result svcx_vector_reserve(svcx_vector *v, size_t min_cap) {
     if (min_cap <= v->cap) {
-	return SVCX_OK;
+        return SVCX_OK;
     }
 
     size_t new_cap = v->cap ? v->cap : 8;
 
     while (new_cap < min_cap) {
-	new_cap *= 2;
+        new_cap *= 2;
     }
 
     size_t new_size_bytes = new_cap * v->stride;
 
     void *new_data = svcx_alloc(&v->a, new_size_bytes);
     if (!new_data) {
-	return SVCX_VEC_ERR_OOM;
+        return SVCX_VEC_ERR_OOM;
     }
 
     if (v->data && v->size > 0) {
-	memcpy(new_data, v->data, v->size * v->stride);
+        memcpy(new_data, v->data, v->size * v->stride);
     }
 
     if (v->data) {
-	svcx_free(&v->a, v->data);
+        svcx_free(&v->a, v->data);
     }
 
     v->data = new_data;
@@ -871,12 +820,12 @@ SVCXDEF svcx_result svcx_vector_reserve(svcx_vector *v, size_t min_cap) {
 
 SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem) {
     SVCX_ASSERT(v);
-    
+
     if (v->size == v->cap) {
         int err = _svcx_vector_grow(v, v->size + 1);
         if (err != 0) {
             return SVCX_VEC_PUSH_GROW_ERR;
-        }        
+        }
     }
 
     void *dst = (char *)v->data + v->size * v->stride;
@@ -887,7 +836,7 @@ SVCXDEF svcx_result svcx_vector_push(svcx_vector *v, const void *elem) {
 
 SVCXDEF svcx_result svcx_vector_pop(svcx_vector *v, void *out_elem) {
     SVCX_ASSERT(v);
-    
+
     if (v->size == 0) {
         return SVCX_VEC_POP_EMPTY_ERR;
     }
@@ -912,7 +861,8 @@ SVCXDEF void *svcx_vector_at(svcx_vector *v, size_t index) {
     return (char *)v->data + index * v->stride;
 }
 
-SVCXDEF svcx_result svcx_vector_insert(svcx_vector *v, size_t index, const void *elem) {
+SVCXDEF svcx_result svcx_vector_insert(
+    svcx_vector *v, size_t index, const void *elem) {
     SVCX_ASSERT(v);
     if (index > v->size) {
         return SVCX_VEC_INSERT_OOB;
@@ -933,7 +883,8 @@ SVCXDEF svcx_result svcx_vector_insert(svcx_vector *v, size_t index, const void 
     return SVCX_OK;
 }
 
-SVCXDEF svcx_result svcx_vector_append(svcx_vector *dst, const svcx_vector *src) {
+SVCXDEF svcx_result svcx_vector_append(
+    svcx_vector *dst, const svcx_vector *src) {
     SVCX_ASSERT(dst);
     SVCX_ASSERT(src);
 
@@ -950,22 +901,18 @@ SVCXDEF svcx_result svcx_vector_append(svcx_vector *dst, const svcx_vector *src)
         }
     }
 
-    memcpy(
-        (char *)dst->data + dst->size * dst->stride,
+    memcpy((char *)dst->data + dst->size * dst->stride,
         src->data,
-        src->size * src->stride                           
-    );
+        src->size * src->stride);
     dst->size = new_size;
     return SVCX_OK;
 }
 
-SVCXDEF svcx_result svcx_vector_from_array(
-    svcx_vector *v,
+SVCXDEF svcx_result svcx_vector_from_array(svcx_vector *v,
     const void *array,
     size_t count,
     size_t stride,
-    svcx_allocator a
-) {
+    svcx_allocator a) {
     svcx_vector_init(v, stride, a);
 
     if (count == 0) {
@@ -985,7 +932,7 @@ SVCXDEF svcx_result svcx_vector_from_array(
 
 SVCXDEF void svcx_vector_free(svcx_vector *v) {
     SVCX_ASSERT(v);
-    
+
     if (v->data) {
         svcx_free(&v->a, v->data);
     }
@@ -1000,9 +947,6 @@ SVCXDEF size_t svcx_vector_size(svcx_vector *v) {
     return v->size;
 }
 
-
-
-
 SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size) {
     svcx_string_view sv;
     sv.data = data;
@@ -1011,42 +955,38 @@ SVCXDEF svcx_string_view svcx_sv_from_parts(const char *data, size_t size) {
 }
 
 SVCXDEF svcx_string_view svcx_sv_from_cstr(const char *data) {
-    return (svcx_string_view) { data, strlen(data) };
+    return (svcx_string_view){data, strlen(data)};
 }
 
 SVCXDEF bool svcx_sv_contains(
-    svcx_string_view haystack,
-    svcx_string_view needle
-) {
+    svcx_string_view haystack, svcx_string_view needle) {
     if (needle.len == 0) {
         return true;
     }
     if (needle.len > haystack.len) {
-	return false;
+        return false;
     }
 
     for (size_t i = 0; i <= haystack.len - needle.len; i++) {
         if (memcmp(haystack.data + i, needle.data, needle.len) == 0) {
-	    return true;
-	}
+            return true;
+        }
     }
     return false;
 }
 
 SVCXDEF size_t svcx_sv_find(
-    svcx_string_view haystack,
-    svcx_string_view needle
-) {
+    svcx_string_view haystack, svcx_string_view needle) {
     if (needle.len == 0) {
-	return 0;
+        return 0;
     }
     if (needle.len > haystack.len) {
-	return -1;
+        return -1;
     }
 
     for (size_t i = 0; i <= haystack.len - needle.len; i++) {
-	if (memcmp(haystack.data + i, needle.data, needle.len) == 0) {
-	    return i;
+        if (memcmp(haystack.data + i, needle.data, needle.len) == 0) {
+            return i;
         }
     }
     return -1;
@@ -1054,16 +994,16 @@ SVCXDEF size_t svcx_sv_find(
 
 SVCXDEF bool svcx_sv_starts_with(svcx_string_view sv, svcx_string_view prefix) {
     if (prefix.len > sv.len) {
-	return false;
+        return false;
     }
     return memcmp(sv.data, prefix.data, prefix.len) == 0;
 }
 
 SVCXDEF bool svcx_sv_ends_with(svcx_string_view sv, svcx_string_view suffix) {
     if (suffix.len > sv.len) {
-	return false;
+        return false;
     }
-    
+
     const char *start = sv.data + (sv.len - suffix.len);
     return memcmp(start, suffix.data, suffix.len) == 0;
 }
@@ -1072,14 +1012,11 @@ SVCXDEF svcx_string_view svcx_sv_trim_start(svcx_string_view sv) {
     size_t start = 0;
     size_t end = sv.len;
 
-    while (start < end && isspace((unsigned char) sv.data[start])) {
-	start++;
+    while (start < end && isspace((unsigned char)sv.data[start])) {
+        start++;
     }
-    
-    return (svcx_string_view) {
-        .data = sv.data + start,
-	.len = end - start
-    };
+
+    return (svcx_string_view){.data = sv.data + start, .len = end - start};
 }
 
 SVCXDEF svcx_string_view svcx_sv_trim_end(svcx_string_view sv) {
@@ -1087,12 +1024,12 @@ SVCXDEF svcx_string_view svcx_sv_trim_end(svcx_string_view sv) {
     size_t end = sv.len;
 
     while (end > start && isspace((unsigned char)sv.data[end - 1])) {
-	end--;
+        end--;
     }
 
-    return (svcx_string_view) {
+    return (svcx_string_view){
         .data = sv.data,
-	.len = end,
+        .len = end,
     };
 }
 
@@ -1102,51 +1039,42 @@ SVCXDEF svcx_string_view svcx_sv_trim(svcx_string_view sv) {
 }
 
 SVCXDEF svcx_result svcx_sv_split(
-    svcx_string_view sv,
-    char delimiter,
-    svcx_vector *out
-) {
+    svcx_string_view sv, char delimiter, svcx_vector *out) {
     size_t start = 0;
 
     for (size_t i = 0; i <= sv.len; i++) {
         if (i == sv.len || sv.data[i] == delimiter) {
             svcx_string_view part = {
-		.data = sv.data + start,
-		.len = i - start,
-	    };
+                .data = sv.data + start,
+                .len = i - start,
+            };
 
             svcx_result r = svcx_vector_push(out, &part);
-	    if (r != SVCX_OK) {
-		return SVCX_SV_SPLIT_ERR;
+            if (r != SVCX_OK) {
+                return SVCX_SV_SPLIT_ERR;
             }
 
-	    start = i + 1;
-	}
+            start = i + 1;
+        }
     }
 
     return SVCX_OK;
 }
 
 SVCXDEF svcx_string_view svcx_sv_substring(
-    svcx_string_view sv,
-    size_t start,
-    size_t end
-) {
+    svcx_string_view sv, size_t start, size_t end) {
     SVCX_ASSERT(start <= end);
     SVCX_ASSERT(end <= sv.len);
 
     if (start > end) {
-	start = end;
+        start = end;
     }
     if (end > sv.len) {
-	end = sv.len;
+        end = sv.len;
     }
 
     return svcx_sv_from_parts(sv.data + start, end - start);
 }
-
-
-
 
 SVCXDEF void svcx_sb_init(svcx_string_builder *sb, svcx_allocator a) {
     svcx_vector_init(&sb->buf, sizeof(char), a);
@@ -1162,20 +1090,17 @@ SVCXDEF void svcx_sb_free(svcx_string_builder *sb) {
 
 SVCXDEF svcx_result svcx_sb_push_char(svcx_string_builder *sb, char c) {
     if (svcx_vector_push(&sb->buf, &c) != SVCX_OK) {
-	return SVCX_SB_PUSHC_ERR;
+        return SVCX_SB_PUSHC_ERR;
     }
     return SVCX_OK;
 }
 
 SVCXDEF svcx_result svcx_sb_append(
-    svcx_string_builder *sb,                                   
-    const char *str,
-    size_t len
-) {
+    svcx_string_builder *sb, const char *str, size_t len) {
     SVCX_ASSERT(str || len == 0);
 
     if (len == 0) {
-	return SVCX_OK;
+        return SVCX_OK;
     }
 
     size_t old_size = sb->buf.size;
@@ -1183,7 +1108,7 @@ SVCXDEF svcx_result svcx_sb_append(
     svcx_result r = svcx_vector_reserve(&sb->buf, old_size + len);
 
     if (r != SVCX_OK) {
-	return SVCX_SB_APPEND_ERR;
+        return SVCX_SB_APPEND_ERR;
     }
 
     memcpy((char *)sb->buf.data + old_size, str, len);
@@ -1193,43 +1118,32 @@ SVCXDEF svcx_result svcx_sb_append(
 }
 
 SVCXDEF svcx_result svcx_sb_append_cstr(
-    svcx_string_builder *sb,
-    const char *cstr
-) {
+    svcx_string_builder *sb, const char *cstr) {
     return svcx_sb_append(sb, cstr, strlen(cstr));
 }
 
 SVCXDEF svcx_result svcx_sb_append_sv(
-    svcx_string_builder *sb,
-    svcx_string_view sv
-) {
+    svcx_string_builder *sb, svcx_string_view sv) {
     if (sv.len == 0) {
-	return SVCX_OK;
+        return SVCX_OK;
     }
 
     size_t new_size = sb->buf.size + sv.len;
 
     svcx_result r = svcx_vector_reserve(&sb->buf, new_size);
     if (r != SVCX_OK) {
-	return SVCX_SB_APPEND_SV_ERR;
+        return SVCX_SB_APPEND_SV_ERR;
     }
 
-    memcpy(
-	   (char *)sb->buf.data + sb->buf.size,
-           sv.data,
-	   sv.len
-    );
+    memcpy((char *)sb->buf.data + sb->buf.size, sv.data, sv.len);
 
     sb->buf.size = new_size;
-    
+
     return SVCX_OK;
 }
 
 SVCXDEF svcx_result svcx_sb_append_fmt(
-    svcx_string_builder *sb,
-    const char *fmt,
-    ...
-) {
+    svcx_string_builder *sb, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
@@ -1241,7 +1155,7 @@ SVCXDEF svcx_result svcx_sb_append_fmt(
 
     if (needed < 0) {
         va_end(args_copy);
-	return SVCX_SB_FMT_INVALID_ARG_ERR;
+        return SVCX_SB_FMT_INVALID_ARG_ERR;
     }
 
     size_t old_size = sb->buf.size;
@@ -1250,15 +1164,11 @@ SVCXDEF svcx_result svcx_sb_append_fmt(
 
     if (r != SVCX_OK) {
         va_end(args_copy);
-	return SVCX_SB_FMT_RESERVE_ERR;
+        return SVCX_SB_FMT_RESERVE_ERR;
     }
 
     vsnprintf(
-        (char *)sb->buf.data + old_size,
-	(size_t)needed + 1,
-	fmt,
-	args_copy
-    );
+        (char *)sb->buf.data + old_size, (size_t)needed + 1, fmt, args_copy);
     va_end(args_copy);
     sb->buf.size += (size_t)needed;
     return SVCX_OK;
@@ -1270,7 +1180,7 @@ SVCXDEF const char *svcx_sb_cstr(svcx_string_builder *sb) {
     if (sb->buf.size == sb->buf.cap ||
         ((char *)sb->buf.data)[sb->buf.size] != '\0') {
         svcx_vector_push(&sb->buf, &zero);
-	sb->buf.size--;
+        sb->buf.size--;
     }
 
     return (const char *)sb->buf.data;
@@ -1283,15 +1193,9 @@ SVCXDEF char *svcx_sb_build(svcx_string_builder *sb) {
 }
 
 SVCXDEF svcx_string_view svcx_sb_view(svcx_string_builder *sb) {
-    return (svcx_string_view) {
-        .data = (const char *)sb->buf.data,
-	.len = sb->buf.size
-    };
+    return (svcx_string_view){
+        .data = (const char *)sb->buf.data, .len = sb->buf.size};
 }
-
-
-    
-
 
 #endif // SVCX_IMPLEMENTATION
 
