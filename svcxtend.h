@@ -532,6 +532,12 @@ SVCXDEF svcx_result svcx_sv_split(
     char delimiter,
     svcx_vector *out
 );
+SVCXDEF svcx_string_view svcx_sv_substring(
+    svcx_string_view sv,
+    size_t start,
+    size_t end
+);
+
 
 #define SVCX_SV(lit) ((svcx_string_view){ (lit), sizeof(lit) - 1 })
 
@@ -1119,6 +1125,24 @@ SVCXDEF svcx_result svcx_sv_split(
     }
 
     return SVCX_OK;
+}
+
+SVCXDEF svcx_string_view svcx_sv_substring(
+    svcx_string_view sv,
+    size_t start,
+    size_t end
+) {
+    SVCX_ASSERT(start <= end);
+    SVCX_ASSERT(end <= sv.len);
+
+    if (start > end) {
+	start = end;
+    }
+    if (end > sv.len) {
+	end = sv.len;
+    }
+
+    return svcx_sv_from_parts(sv.data + start, end - start);
 }
 
 

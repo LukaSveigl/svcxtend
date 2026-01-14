@@ -78,6 +78,13 @@ void test_string_utils() {
     assert(svcx_sv_contains(built, world));
 
     assert(svcx_sv_find(built, hello) == 0);
+
+    svcx_string_builder sbs = {0};
+    svcx_sb_init(&sbs, svcx_default_allocator());
+    svcx_sb_append_sv(&sbs, svcx_sv_substring(built, 0, 5));
+    const char* sbs_str = svcx_sb_build(&sbs);
+
+    assert(strcmp(sbs_str, "Hello") == 0);
     
     svcx_arena_free_all(&arena);
 }
