@@ -270,7 +270,7 @@ SVCXDEF void svcx_arena_free(void *ctx, void *ptr);
 // }
 // svcx_arena_reset(&arena);
 // int *ptr = svcx_alloc(&a, 1024);
-// svcx_arena_Free_all(&arena);
+// svcx_arena_free_all(&arena);
 // // Arena invalid here, must be reinitialized
 // ```
 //
